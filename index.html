@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sorting Visualizer</title>
+  <style>
+    body {
+      background: #005f5f;
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 20px 0;
+    }
+
+    #bars-container {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      height: 400px;
+      margin: 20px;
+      background: white;
+    }
+
+    .bar {
+      width: 10px;
+      margin: 0 1px;
+      background: steelblue;
+    }
+
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      background-color: #00bfbf;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: #009999;
+    }
+
+    #speed {
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Comparison Sorting Algorithms</h1>
+
+  <div>
+    <button onclick="generateBars()">Randomize Array</button>
+    <button onclick="insertionSort()">Insertion Sort</button>
+    <button onclick="selectionSort()">Selection Sort</button>
+    <button onclick="bubbleSort()">Bubble Sort</button>
+    <button onclick="quickSort()">Quick Sort</button>
+    <button onclick="mergeSort()">Merge Sort</button>
+    <button onclick="shellSort()">Shell Sort</button>
+    <button onclick="changeSize()">Change Size</button>
+  </div>
+
+  <div>
+    Speed: 
+    <input type="range" id="speed" min="1" max="1000" value="100">
+  </div>
+
+  <div id="bars-container"></div>
+
+  <script>
+    const container = document.getElementById("bars-container");
+    let bars = [];
+    let speed = 100;
+
+    document.getElementById("speed").addEventListener("input", e => {
+      speed = 1001 - e.target.value;
+    });
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function generateBars(num = 50) {
+      container.innerHTML = "";
+      bars = [];
+      for (let i = 0; i < num; i++) {
+        const height = Math.floor(Math.random() * 300) + 10;
+        const bar = document.createElement("div");
+        bar.classList.add("bar");
+        bar.style.height = `${height}px`;
+        bars.push(bar);
+        container.appendChild(bar);
+      }
+    }
+
+    function changeSize() {
+      bars.forEach(bar => {
+        let h = parseInt(bar.style.height);
+        bar.style.height = `${Math.max(5, h / 2)}px`;
+      });
+    }
+
+    async function swap(i, j) {
+      let temp = bars[i].style.height;
+      bars[i].style.height = bars[j].style.height;
+      bars[j].style.height = temp;
+      await sleep(speed);
+    }
+
+    async function bubbleSort() {
+      for (let i = 0; i < bars.length; i++) {
+        for (let j = 0; j < bars.length - i - 1; j++) {
+          if (parseInt(bars[j].style.height) > parseInt(bars[j + 1].style.height)) {
+            await swap(j, j + 1);
+          }
+        }
+      }
+    }
+
+    async function selectionSort() {
+      for (let i = 0; i < bars.length; i++) {
+        let minIndex = i;
+        for (let j = i + 1; j < bars.length; j++) {
+          if (parseInt(bars[j].style.height) < parseInt(bars[minIndex].style.height)) {
+            minIndex = j;
+          }
+        }
+        if (minIndex !== i) {
+          await swap(i, minIndex);
+        }
+      }
+    }
+
+    async function insertionSort() {
+      for (let i = 1; i < bars.length; i++) {
+        let keyHeight = parseInt(bars[i].style.height);
+        let j = i - 1;
+        while (j >= 0 && parseInt(bars[j].style.height) > keyHeight) {
+          bars[j + 1].style.height = bars[j].style.height;
+          j--;
+          await sleep(speed);
+        }
+        bars[j + 1].style.height = `${keyHeight}px`;
+      }
+    }
+
+    async function partition(low, high) {
+      let pivot = parseInt(bars[high].style.height);
+      let i = low - 1;
+      for (let j = low; j < high; j++) {
+        if (parseInt(bars[j].style.height) < pivot) {
+          i++;
+          await swap(i, j);
+        }
+      }
+      await swap(i + 1, high);
+      return i + 1;
+    }
+
+    async function quickSortHelper(low, high) {
+      if (low < high) {
+        let pi = await partition(low, high);
+        await quickSortHelper(low, pi - 1);
+        await quickSortHelper(pi + 1, high);
+      }
+    }
+
+    async function quickSort() {
+      await quickSortHelper(0, bars.length - 1);
+    }
+
+    async function merge(l, m, r) {
+      let left = bars.slice(l, m + 1).map(b => parseInt(b.style.height));
+      let right = bars.slice(m + 1, r + 1).map(b => parseInt(b.style.height));
+      let i = 0, j = 0, k = l;
+
+      while (i < left.length && j < right.length) {
+        if (left[i] <= right[j]) {
+          bars[k].style.height = `${left[i]}px`;
+          i++;
+        } else {
+          bars[k].style.height = `${right[j]}px`;
+          j++;
+        }
+        k++;
+        await sleep(speed);
+      }
+
+      while (i < left.length) {
+        bars[k++].style.height = `${left[i++]}px`;
+        await sleep(speed);
+      }
+
+      while (j < right.length) {
+        bars[k++].style.height = `${right[j++]}px`;
+        await sleep(speed);
+      }
+    }
+
+    async function mergeSortHelper(l, r) {
+      if (l < r) {
+        let m = Math.floor((l + r) / 2);
+        await mergeSortHelper(l, m);
+        await mergeSortHelper(m + 1, r);
+        await merge(l, m, r);
+      }
+    }
+
+    async function mergeSort() {
+      await mergeSortHelper(0, bars.length - 1);
+    }
+
+    async function shellSort() {
+      let n = bars.length;
+      for (let gap = Math.floor(n / 2); gap > 0; gap = Math.floor(gap / 2)) {
+        for (let i = gap; i < n; i++) {
+          let temp = parseInt(bars[i].style.height);
+          let j;
+          for (j = i; j >= gap && parseInt(bars[j - gap].style.height) > temp; j -= gap) {
+            bars[j].style.height = bars[j - gap].style.height;
+            await sleep(speed);
+          }
+          bars[j].style.height = `${temp}px`;
+        }
+      }
+    }
+
+    // Initialize on page load
+    generateBars();
+  </script>
+</body>
+</html>
